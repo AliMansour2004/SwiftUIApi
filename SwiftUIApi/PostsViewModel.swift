@@ -14,33 +14,28 @@ final class PostsViewModel: ObservableObject {
   @Published var posts: [Post] = []
   @Published var isLoading = false      // initial / refresh spinner
   @Published var isPaging  = false      // bottom spinner for next pages
+  @Published private(set) var hasMore = true
   @Published var error: String?
 
   private let api = APIClient()
   private var loadTask: Task<Void, Never>?
 
-  // 📄 Paging state
+  // Paging state
   private var page = 1
   private let pageSize = 20
-  private var hasMore = true
 
   // MARK: - Public API
+  func load()    { loadFirstPage() }
+  func refresh() { loadFirstPage() }
 
-  func load() { loadFirstPage() }       // initial load
-  func refresh() { loadFirstPage() }    // pull-to-refresh
-
-  /// Call from the last row's onAppear
-  func loadMoreIfNeeded(currentPost: Post?) {
+  /// Called by the "Load more" button
+  func loadMore() {
     guard hasMore, !isPaging, !isLoading else { return }
-    guard let currentPost = currentPost else { return }
-    if currentPost.id == posts.last?.id {
-      page += 1
-      loadNextPage()
-    }
+    page += 1
+    loadNextPage()
   }
 
   // MARK: - Internal loads
-
   private func loadFirstPage() {
     loadTask?.cancel()
     page = 1
@@ -52,7 +47,7 @@ final class PostsViewModel: ObservableObject {
 
   private func loadNextPage() {
     guard hasMore else { return }
-    loadTask?.cancel() // safe: avoid overlapping
+    loadTask?.cancel()
     loadTask = Task { await fetchPage(page, replace: false) }
   }
 
@@ -77,13 +72,8 @@ final class PostsViewModel: ObservableObject {
       try Task.checkCancellation()
 
       error = nil
-      if replace {
-        posts = items
-      } else {
-        posts += items
-      }
+      if replace { posts = items } else { posts += items }
 
-      // If fewer than a full page returned, no more data.
       hasMore = items.count == pageSize
 
       #if DEBUG

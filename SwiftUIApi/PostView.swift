@@ -19,8 +19,7 @@ struct PostsView: View {
           VStack(spacing: 12) {
             Text("Something went wrong").font(.headline)
             Text(error).foregroundStyle(.red).multilineTextAlignment(.center)
-            Button("Retry") { vm.load() }
-              .buttonStyle(.borderedProminent)
+            Button("Retry") { vm.load() }.buttonStyle(.borderedProminent)
           }
           .padding()
         } else if vm.posts.isEmpty {
@@ -33,14 +32,36 @@ struct PostsView: View {
                 Text(post.body).foregroundStyle(.secondary)
               }
               .padding(.vertical, 4)
-              .onAppear { vm.loadMoreIfNeeded(currentPost: post) } // 👈 trigger pagination
             }
 
-            // Bottom spinner while loading next page
+            // Footer area: spinner → load button → "All caught up"
             if vm.isPaging {
               HStack {
                 Spacer()
                 ProgressView().padding(.vertical, 12)
+                Spacer()
+              }
+            } else if vm.hasMore {
+              HStack {
+                Spacer()
+                Button {
+                  vm.loadMore()
+                } label: {
+                  HStack(spacing: 8) {
+                    Image(systemName: "arrow.down.circle")
+                    Text("Load more")
+                  }
+                }
+                .buttonStyle(.bordered)
+                .padding(.vertical, 12)
+                Spacer()
+              }
+            } else {
+              HStack {
+                Spacer()
+                Text("All caught up")
+                  .foregroundStyle(.secondary)
+                  .padding(.vertical, 12)
                 Spacer()
               }
             }
@@ -49,8 +70,8 @@ struct PostsView: View {
         }
       }
       .navigationTitle("Posts")
-      .task { vm.load() }           // initial load on appear
-      .refreshable { vm.refresh() } // pull-to-refresh → resets to page 1
+      .task { vm.load() }
+      .refreshable { vm.refresh() }
     }
   }
 }
